@@ -64,31 +64,31 @@ app.post('/login', controller.login);
 
 // ====== Carousel Routes ====== 
 app.post('/carousels', authentication, upload.single('gambar'), controller.createCarousel);
-app.get('/carousels', authentication, controller.readCarousel);
+app.get('/carousels', controller.readCarousel);
 app.put('/carousels/:id', authentication, upload.single('gambar'), controller.updateCarousel);
 app.delete('/carousels/:id', authentication, controller.deleteCarousel);
 
 // ====== News Routes ====== 
 app.post('/news', authentication, upload.single('gambar'), controller.createNews);
-app.get('/news', authentication, controller.readNews);
+app.get('/news', controller.readNews);
 app.put('/news/:id', authentication, upload.single('gambar'), controller.updateNews);
 app.delete('/news/:id', authentication, controller.deleteNews);
 
 // ====== Output Routes ====== 
 app.post('/outputs', authentication, controller.createOutput);
-app.get('/outputs', authentication, controller.readOutput);
+app.get('/outputs', controller.readOutput);
 app.put('/outputs/:id', authentication, controller.updateOutput);
 app.delete('/outputs/:id', authentication, controller.deleteOutput);
 
 // ====== Portfolio Routes ====== 
 app.post('/portfolios', authentication, upload.single('gambar'), controller.createPortfolio);
-app.get('/portfolios', authentication, controller.readPortfolio);
+app.get('/portfolios', controller.readPortfolio);
 app.put('/portfolios/:id', authentication, upload.single('gambar'), controller.updatePortfolio);
 app.delete('/portfolios/:id', authentication, controller.deletePortfolio);
 
 // ====== Ruanglingkup Routes ====== 
 app.post('/ruanglingkups', authentication, controller.createRuanglingkup);
-app.get('/ruanglingkups', authentication, controller.readRuanglingkup);
+app.get('/ruanglingkups', controller.readRuanglingkup);
 app.put('/ruanglingkups/:id', authentication, controller.updateRuanglingkup);
 app.delete('/ruanglingkups/:id', authentication, controller.deleteRuanglingkup);
 

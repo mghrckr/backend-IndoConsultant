@@ -60,29 +60,28 @@ class Controller {
 
   static async updateCarousel(req, res) {
     try {
-        const { id } = req.params;
-        const { PortfolioId } = req.body;
-        const gambar = req.file ? req.file.filename : null;
+      const { id } = req.params;
+      const { PortfolioId } = req.body;
+      const gambar = req.file ? req.file.filename : null;
 
-        const carousel = await Carousel.findByPk(id);
-        if (!carousel) return res.status(404).json({ message: "Not found" });
+      const carousel = await Carousel.findByPk(id);
+      if (!carousel) return res.status(404).json({ message: "Not found" });
 
-        if (gambar && carousel.gambar) {
-            const filePath = path.join(__dirname, '..', 'public', carousel.gambar);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            } else {
-                console.error(`File tidak ditemukan: ${filePath}`);
-            }
+      if (gambar && carousel.gambar) {
+        const filePath = path.join(__dirname, '..', 'public', carousel.gambar);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        } else {
+          console.error(`File tidak ditemukan: ${filePath}`);
         }
+      }
 
-        await Carousel.update({ PortfolioId, gambar }, { where: { id } });
-        res.status(200).json({ message: "Updated successfully" });
+      await Carousel.update({ PortfolioId, gambar }, { where: { id } });
+      res.status(200).json({ message: "Updated successfully" });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
-}
-
+  }
   static async deleteCarousel(req, res) {
     try {
       const { id } = req.params;
@@ -91,21 +90,35 @@ class Controller {
       if (!carousel) return res.status(404).json({ message: "Not found" });
 
       if (carousel.gambar) {
-        const filePath = path.join(__dirname, '..', 'public', carousel.gambar);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+        // Paths for checking
+        const uploadPath = path.join(__dirname, '..', 'public', 'uploads', carousel.gambar);
+        const imagesPath = path.join(__dirname, '..', 'public', 'images', carousel.gambar);
+
+        console.log(`Checking file in uploads directory: ${uploadPath}`);
+        if (fs.existsSync(uploadPath)) {
+          fs.unlinkSync(uploadPath);
+          console.log(`File deleted from uploads: ${uploadPath}`);
         } else {
-          console.error(`File tidak ditemukan: ${filePath}`);
-          return res.status(404).json({ message: 'File tidak ditemukan' });
+          console.log(`File not found in uploads. Checking images directory: ${imagesPath}`);
+          if (fs.existsSync(imagesPath)) {
+            fs.unlinkSync(imagesPath);
+            console.log(`File deleted from images: ${imagesPath}`);
+          } else {
+            console.error(`File not found in both directories: ${uploadPath} and ${imagesPath}`);
+            return res.status(404).json({ message: 'File tidak ditemukan' });
+          }
         }
       }
 
       await Carousel.destroy({ where: { id } });
       res.status(200).json({ message: "Deleted successfully" });
     } catch (error) {
+      console.error("Error in deleteCarousel:", error.message);
       res.status(500).json({ error: error.message });
     }
   }
+
+
 
   // ========== News ==========
   static async createNews(req, res) {
@@ -138,26 +151,44 @@ class Controller {
     try {
         const { id } = req.params;
         const { judul, isi } = req.body;
-        const gambar = req.file ? req.file.filename : null;
+        let gambar = null;
 
         const news = await News.findByPk(id);
         if (!news) return res.status(404).json({ message: "Not found" });
 
-        if (gambar && news.gambar) {
-            const filePath = path.join(__dirname, '..', 'public', news.gambar);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            } else {
-                console.error(`File tidak ditemukan: ${filePath}`);
+        // If there’s a new file, handle it
+        if (req.file) {
+            const newFilePath = path.join(__dirname, '..', 'public', 'uploads', req.file.filename);
+            gambar = `/uploads/${req.file.filename}`;
+
+            // Delete old file if it exists
+            const oldFilePath = path.join(__dirname, '..', 'public', 'uploads', news.gambar);
+            const oldImagesPath = path.join(__dirname, '..', 'public', 'images', news.gambar);
+
+            if (fs.existsSync(oldFilePath)) {
+                fs.unlinkSync(oldFilePath);
+            } else if (fs.existsSync(oldImagesPath)) {
+                fs.unlinkSync(oldImagesPath);
             }
+        } else {
+            // If there's no new file, retain the existing image path
+            gambar = news.gambar;
         }
 
+        // Update the news item with the image path included
         await News.update({ judul, isi, gambar }, { where: { id } });
-        res.status(200).json({ message: "Updated successfully" });
+
+        // Respond with the updated news data
+        res.status(200).json({
+            message: "Updated successfully",
+            data: { id, judul, isi, gambar },
+        });
     } catch (error) {
+        console.error("Error in updateNews:", error.message);
         res.status(500).json({ error: error.message });
     }
 }
+
 
   static async deleteNews(req, res) {
     try {
@@ -166,22 +197,37 @@ class Controller {
       const news = await News.findByPk(id);
       if (!news) return res.status(404).json({ message: "Not found" });
 
+      // Periksa jika ada gambar yang terkait dengan berita
       if (news.gambar) {
-        const filePath = path.join(__dirname, '..', 'public', news.gambar);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        } else {
-          console.error(`File tidak ditemukan: ${filePath}`);
-          return res.status(404).json({ message: 'File tidak ditemukan' });
+        // Jalur file di kedua direktori
+        const uploadPath = path.join(__dirname, '..', 'public', 'uploads', news.gambar);
+        const imagesPath = path.join(__dirname, '..', 'public', 'images', news.gambar);
+
+        // Coba hapus file dari direktori uploads
+        if (fs.existsSync(uploadPath)) {
+          fs.unlinkSync(uploadPath);
+          console.log(`File deleted from uploads: ${uploadPath}`);
+        }
+        // Jika tidak ditemukan, coba hapus dari direktori images
+        else if (fs.existsSync(imagesPath)) {
+          fs.unlinkSync(imagesPath);
+          console.log(`File deleted from images: ${imagesPath}`);
+        }
+        // Jika tidak ditemukan di kedua direktori
+        else {
+          console.error(`File tidak ditemukan di kedua direktori: ${uploadPath} dan ${imagesPath}`);
         }
       }
 
+      // Hapus berita dari database
       await News.destroy({ where: { id } });
       res.status(200).json({ message: "Deleted successfully" });
     } catch (error) {
+      console.error("Error in deleteNews:", error.message); // Log kesalahan
       res.status(500).json({ error: error.message });
     }
   }
+
 
   // ========== Output ==========
   static async createOutput(req, res) {
@@ -311,28 +357,28 @@ class Controller {
 
   static async updatePortfolio(req, res) {
     try {
-        const { id } = req.params;
-        const { judul, isi, lingkupPekerjaan, divisi } = req.body;
-        const gambar = req.file ? req.file.filename : null;
+      const { id } = req.params;
+      const { judul, isi, lingkupPekerjaan, divisi } = req.body;
+      const gambar = req.file ? req.file.filename : null;
 
-        const portfolio = await Portfolio.findByPk(id);
-        if (!portfolio) return res.status(404).json({ message: "Not found" });
+      const portfolio = await Portfolio.findByPk(id);
+      if (!portfolio) return res.status(404).json({ message: "Not found" });
 
-        if (gambar && portfolio.gambar) {
-            const filePath = path.join(__dirname, '..', 'public', portfolio.gambar);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            } else {
-                console.error(`File tidak ditemukan: ${filePath}`);
-            }
+      if (gambar && portfolio.gambar) {
+        const filePath = path.join(__dirname, '..', 'public', portfolio.gambar);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        } else {
+          console.error(`File tidak ditemukan: ${filePath}`);
         }
+      }
 
-        await Portfolio.update({ judul, isi, lingkupPekerjaan, gambar, divisi }, { where: { id } });
-        res.status(200).json({ message: "Updated successfully" });
+      await Portfolio.update({ judul, isi, lingkupPekerjaan, gambar, divisi }, { where: { id } });
+      res.status(200).json({ message: "Updated successfully" });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
-}
+  }
 
   static async deletePortfolio(req, res) {
     try {
