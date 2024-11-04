@@ -149,45 +149,45 @@ class Controller {
 
   static async updateNews(req, res) {
     try {
-        const { id } = req.params;
-        const { judul, isi } = req.body;
-        let gambar = null;
+      const { id } = req.params;
+      const { judul, isi } = req.body;
+      let gambar = null;
 
-        const news = await News.findByPk(id);
-        if (!news) return res.status(404).json({ message: "Not found" });
+      const news = await News.findByPk(id);
+      if (!news) return res.status(404).json({ message: "Not found" });
 
-        // If there’s a new file, handle it
-        if (req.file) {
-            const newFilePath = path.join(__dirname, '..', 'public', 'uploads', req.file.filename);
-            gambar = `/uploads/${req.file.filename}`;
+      // If there’s a new file, handle it
+      if (req.file) {
+        const newFilePath = path.join(__dirname, '..', 'public', 'uploads', req.file.filename);
+        gambar = `/uploads/${req.file.filename}`;
 
-            // Delete old file if it exists
-            const oldFilePath = path.join(__dirname, '..', 'public', 'uploads', news.gambar);
-            const oldImagesPath = path.join(__dirname, '..', 'public', 'images', news.gambar);
+        // Delete old file if it exists
+        const oldFilePath = path.join(__dirname, '..', 'public', 'uploads', news.gambar);
+        const oldImagesPath = path.join(__dirname, '..', 'public', 'images', news.gambar);
 
-            if (fs.existsSync(oldFilePath)) {
-                fs.unlinkSync(oldFilePath);
-            } else if (fs.existsSync(oldImagesPath)) {
-                fs.unlinkSync(oldImagesPath);
-            }
-        } else {
-            // If there's no new file, retain the existing image path
-            gambar = news.gambar;
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        } else if (fs.existsSync(oldImagesPath)) {
+          fs.unlinkSync(oldImagesPath);
         }
+      } else {
+        // If there's no new file, retain the existing image path
+        gambar = news.gambar;
+      }
 
-        // Update the news item with the image path included
-        await News.update({ judul, isi, gambar }, { where: { id } });
+      // Update the news item with the image path included
+      await News.update({ judul, isi, gambar }, { where: { id } });
 
-        // Respond with the updated news data
-        res.status(200).json({
-            message: "Updated successfully",
-            data: { id, judul, isi, gambar },
-        });
+      // Respond with the updated news data
+      res.status(200).json({
+        message: "Updated successfully",
+        data: { id, judul, isi, gambar },
+      });
     } catch (error) {
-        console.error("Error in updateNews:", error.message);
-        res.status(500).json({ error: error.message });
+      console.error("Error in updateNews:", error.message);
+      res.status(500).json({ error: error.message });
     }
-}
+  }
 
 
   static async deleteNews(req, res) {
@@ -232,13 +232,28 @@ class Controller {
   // ========== Output ==========
   static async createOutput(req, res) {
     try {
-      const { PortfolioId, isi } = req.body;
-      const newOutput = await Output.create({ PortfolioId, isi });
-      res.status(201).json(newOutput);
+      const { PortfolioId, outputIsi } = req.body; // Mengubah 'isi' menjadi 'outputIsi'
+      console.log(req.body);
+
+      // Pastikan 'outputIsi' adalah array
+      if (!Array.isArray(outputIsi)) {
+        return res.status(400).json({ error: "Field 'outputIsi' harus berupa array." });
+      }
+
+      // Simpan setiap item dalam array sebagai entri terpisah di database
+      const outputs = await Promise.all(
+        outputIsi.map(async (item) => {
+          return await Output.create({ PortfolioId, isi: item });
+        })
+      );
+
+      res.status(201).json(outputs);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   }
+
+
 
   static async readOutput(req, res) {
     try {
@@ -281,13 +296,28 @@ class Controller {
   // ========== Ruanglingkup ==========
   static async createRuanglingkup(req, res) {
     try {
-      const { PortfolioId, isi } = req.body;
-      const newRuanglingkup = await Ruanglingkup.create({ PortfolioId, isi });
-      res.status(201).json(newRuanglingkup);
+        const { PortfolioId, isi } = req.body;  // Ubah ruangLingkupIsi menjadi isi
+        console.log(req.body);
+
+        // Pastikan 'isi' adalah array
+        if (!Array.isArray(isi)) {
+            return res.status(400).json({ error: "Field 'isi' harus berupa array." });
+        }
+
+        // Simpan setiap item dalam array sebagai entri terpisah di database
+        const ruangLingkups = await Promise.all(
+            isi.map(async (item) => {
+                return await Ruanglingkup.create({ PortfolioId, isi: item });
+            })
+        );
+
+        res.status(201).json(ruangLingkups);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
-  }
+}
+
+
 
   static async readRuanglingkup(req, res) {
     try {
@@ -403,8 +433,6 @@ class Controller {
       res.status(500).json({ error: error.message });
     }
   }
-
-
 }
 
 module.exports = Controller;
